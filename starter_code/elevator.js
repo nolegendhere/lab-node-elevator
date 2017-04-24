@@ -22,13 +22,16 @@ class Elevator {
     this.stopCalled = false;
     this.clearID = setInterval(this.update.bind(this), 1000);
   }
+
   stop() {
     this.running = false;
     clearInterval(this.clearID);
   }
+
   update() {
     console.log("****************************************************");
-    if(this.passengers.length)
+
+    if(this.requests.length)
     {
       if(this.stopCalled)
       {
@@ -36,46 +39,47 @@ class Elevator {
         clearTimeout(this.clearIDStop);
       }
 
-      console.log("passengers");
-      console.log("this.passengers[0].direction",this.passengers[0].person.direction);
-      if(this.requests.length>0)
+      if(this.passengers.length)
       {
-        if(this.requests[0].requestNumber<=this.passengers[0].requestNumber)
+        if(this.passengers[0].requestNumber === this.requests[0].requestNumber)
         {
-          this.direction = (this.requests[0].person.originFloor - this.floor) >= 0 ? 'up' : 'down';
-        }
-        else {
-          this.direction = (this.passengers[0].person.destinationFloor - this.floor) >= 0 ? 'up' : 'down';
-        }
+          console.log("passenger es request, cap a destiny");
+          if(this.requests[0].person.destinationFloor - this.floor>0)
+          {
+            this.direction = 'up';
+          }
+          else if(this.requests[0].person.destinationFloor - this.floor<0)
+          {
+            this.direction = 'down';
+          }
 
+        }
+        else
+        {
+          console.log("passenger no es request, cap a origin");
+          if(this.requests[0].person.originFloor - this.floor>0)
+          {
+            this.direction = 'up';
+          }
+          else if(this.requests[0].person.originFloor - this.floor<0)
+          {
+            this.direction = 'down';
+          }
+        }
       }
       else
       {
-        this.direction = (this.passengers[0].person.destinationFloor - this.floor) >= 0 ? 'up' : 'down';
+        console.log("no hi ha passengers, cap a origin");
+        if(this.requests[0].person.originFloor - this.floor>0)
+        {
+          this.direction = 'up';
+        }
+        else if(this.requests[0].person.originFloor - this.floor<0)
+        {
+          this.direction = 'down';
+        }
       }
 
-
-      if(this.direction === 'up')
-      {
-        console.log("vamos parriba");
-        this.floorUp();
-      }
-      else
-      {
-        console.log("vamos pabajo");
-        this.floorDown();
-      }
-    }
-    else if(this.requests.length)
-    {
-      if(this.stopCalled)
-      {
-        this.stopCalled = false;
-        clearTimeout(this.clearIDStop);
-      }
-      console.log("requests");
-      this.direction = (this.requests[0].person.originFloor - this.floor) >= 0 ? 'up' : 'down';
-      console.log("this.requests[0].direction",this.requests[0].person.direction);
 
       if(this.direction === 'up')
       {
@@ -98,58 +102,106 @@ class Elevator {
       }
 
     }
+
     this.log();
     console.log("****************************************************");
 
   }
 
-  _passengersEnter(element) {
-    this.passengers.push(element);
+  _passengersEnter(element,condition) {
+    if(condition)
+    {
+      this.passengers.unshift(element);
+    }
+    else {
+      this.passengers.push(element);
+    }
     console.log(`${element.person.name} has enter the elevator`);
 
   }
 
   _passengersLeave(element) {
     console.log(`${element.person.name} has left the elevator`);
+    var tempArray = [];
+    this.requests.forEach(function(elementCheck){
+      if(elementCheck.requestNumber != element.requestNumber)
+      {
+        elementCheck.nextRequest = false;
+        tempArray.push(elementCheck);
+      }
+    }.bind(this));
+
+    this.requests = tempArray;
+
+    if(this.requests.length)
+    {
+      this.requests[0].nextRequest = true;
+    }
+  }
+
+  nextRequest(element)
+  {
+    for(var i=0; i<this.requests.length;i++)
+    {
+      if(element.requestNumber === this.requests[i].requestNumber)
+      {
+        if(this.requests[i-1].nextRequest && element.direction===this.requests[i-1].direction)
+        {
+          this.requests[i].nextRequest = true;
+          return true;
+        }
+      }
+
+    }
+
+    return false;
   }
 
   floorUp() {
 
     var tempArrayWaitingList = [];
-    var tempArrayRequest = [];
     var tempArrayPassengers = [];
     var passengerEnter = false;
     var passengerLeft = false;
 
     this.waitinglist.forEach(function(element){
-
-      if(this.passengers.length>0 && element.person.originFloor === this.floor && element.person.direction == this.direction)
+      if(element.person.originFloor === this.floor && element.requestNumber === this.requests[0].requestNumber)
       {
-        this._passengersEnter(element);
+        this._passengersEnter(element, true);
         passengerEnter = true;
       }
-      else if(this.passengers.length===0 && element.person.originFloor === this.floor && this.requests[0].requestNumber===element.requestNumber)
+      else if(element.person.originFloor === this.floor && ((element.person.direction === this.direction && element.person.destinationFloor<=this.requests[0].person.originFloor) || (element.person.direction === this.direction && element.person.destinationFloor<=this.requests[0].person.destinationFloor)))
       {
-        this._passengersEnter(element);
+        this._passengersEnter(element, false);
         passengerEnter = true;
+      }
+      else if(this.requests.length>1)
+      {
+        if(element.person.originFloor === this.floor && this.nextRequest(element) && element.person.direction === this.direction)
+        {
+          this._passengersEnter(element, false);
+          passengerEnter = true;
+        }
+        else {
+          tempArrayWaitingList.push(element);
+        }
+
       }
       else
       {
         tempArrayWaitingList.push(element);
-        tempArrayRequest.push(element);
       }
 
     }.bind(this));
 
     this.waitinglist = tempArrayWaitingList;
-    this.requests = tempArrayRequest;
 
     this.passengers.forEach(function(element){
 
       if(element.person.destinationFloor === this.floor)
       {
-        passengerLeft = true;
         this._passengersLeave(element);
+        passengerLeft = true;
       }
       else
       {
@@ -170,33 +222,41 @@ class Elevator {
   floorDown() {
 
     var tempArrayWaitingList = [];
-    var tempArrayRequest = [];
     var tempArrayPassengers = [];
     var passengerEnter = false;
     var passengerLeft = false;
 
     this.waitinglist.forEach(function(element){
-
-      if(this.passengers.length>0 && element.person.originFloor === this.floor && element.person.direction == this.direction)
+      if(element.person.originFloor === this.floor && element.requestNumber === this.requests[0].requestNumber)
       {
-        this._passengersEnter(element);
+        this._passengersEnter(element, true);
         passengerEnter = true;
       }
-      else if(this.passengers.length===0 && element.person.originFloor === this.floor && this.requests[0].requestNumber===element.requestNumber)
+      else if(element.person.originFloor === this.floor && ((element.person.direction === this.direction && element.person.destinationFloor>=this.requests[0].person.originFloor) || (element.person.direction === this.direction && element.person.destinationFloor>=this.requests[0].person.destinationFloor)))
       {
-        this._passengersEnter(element);
+        this._passengersEnter(element, false);
         passengerEnter = true;
+      }
+      else if(this.requests.length>1)
+      {
+        if(element.person.originFloor === this.floor && this.nextRequest(element) && element.person.direction === this.direction)
+        {
+          this._passengersEnter(element, false);
+          passengerEnter = true;
+        }
+        else {
+          tempArrayWaitingList.push(element);
+        }
+
       }
       else
       {
         tempArrayWaitingList.push(element);
-        tempArrayRequest.push(element);
       }
 
     }.bind(this));
 
     this.waitinglist = tempArrayWaitingList;
-    this.requests = tempArrayRequest;
 
     this.passengers.forEach(function(element){
 
@@ -226,9 +286,18 @@ class Elevator {
     {
       this.start();
     }
+
+    if(this.requests.length)
+    {
+      this.requests.push({person: person, requestNumber: this.requestNumber, nextRequest: false } );
+      this.waitinglist.push({person: person, requestNumber: this.requestNumber, nextRequest: false } );
+    }
+    else {
+      this.requests.push({person: person, requestNumber: this.requestNumber, nextRequest: true } );
+      this.waitinglist.push({person: person, requestNumber: this.requestNumber, nextRequest: true } );
+    }
+
     this.requestNumber++;
-    this.requests.push({person: person, requestNumber: this.requestNumber } );
-    this.waitinglist.push({person: person, requestNumber: this.requestNumber } );
 
 
   }
