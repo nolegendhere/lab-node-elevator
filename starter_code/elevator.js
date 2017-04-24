@@ -145,7 +145,7 @@ class Elevator {
     {
       if(element.requestNumber === this.requests[i].requestNumber)
       {
-        if(this.requests[i-1].nextRequest && element.direction===this.requests[i-1].direction)
+        if(this.requests[i-1].nextRequest && element.person.direction===this.requests[0].person.direction/*&& element.direction===this.requests[i-1].direction*/)
         {
           this.requests[i].nextRequest = true;
           return true;
