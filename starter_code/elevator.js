@@ -43,7 +43,7 @@ class Elevator {
       {
         if(this.passengers[0].requestNumber === this.requests[0].requestNumber)
         {
-          console.log("passenger es request, cap a destiny");
+          console.log("passenger is request, to destiny of passenger/actual first request");
           if(this.requests[0].person.destinationFloor - this.floor>0)
           {
             this.direction = 'up';
@@ -56,7 +56,7 @@ class Elevator {
         }
         else
         {
-          console.log("passenger no es request, cap a origin");
+          console.log("passenger isn't request, to origin actual first request");
           if(this.requests[0].person.originFloor - this.floor>0)
           {
             this.direction = 'up';
@@ -69,7 +69,7 @@ class Elevator {
       }
       else
       {
-        console.log("no hi ha passengers, cap a origin");
+        console.log("nopassengers, to origin actual first request");
         if(this.requests[0].person.originFloor - this.floor>0)
         {
           this.direction = 'up';
@@ -83,12 +83,12 @@ class Elevator {
 
       if(this.direction === 'up')
       {
-        console.log("vamos parriba");
+        console.log("go up");
         this.floorUp();
       }
       else
       {
-        console.log("vamos pabajo");
+        console.log("go down");
         this.floorDown();
       }
     }
